@@ -1,0 +1,16 @@
+{
+  "name": "Terminal de Etiquetas ORGBRO",
+  "short_name": "ORGBRO",
+  "description": "Generador de etiquetas para ORGBRO 57mm y LIFE P15 40x12mm.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d110f",
+  "theme_color": "#0d110f",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "categories": [
+    "productivity",
+    "utilities"
+  ]
+}
