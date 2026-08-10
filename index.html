@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal de Etiquetas 57mm</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- Conexión a la fuente Bitcount Prop Single -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bitcount+Prop+Single:wght@100..900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Variables de Tema Oscuro Retro */
+        :root {
+            --bg-dark: #0d110f;
+            --panel-bg: #151a17;
+            --retro-green: #849c82;
+        }
+        
+        body { 
+            background-color: var(--bg-dark); 
+            color: var(--retro-green);
+            font-family: 'Courier New', Courier, monospace; 
+        }
+        
+        .panel-retro {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--retro-green);
+        }
+        .input-retro {
+            background-color: var(--bg-dark);
+            border: 1px solid var(--retro-green);
+            color: var(--retro-green);
+        }
+        .input-retro::placeholder { color: #4a5c48; }
+        .input-retro:focus { outline: none; box-shadow: 0 0 5px var(--retro-green); }
+        
+        .btn-retro {
+            background-color: var(--retro-green);
+            color: var(--bg-dark);
+            font-weight: bold;
+            border: 1px solid var(--retro-green);
+            transition: all 0.2s;
+        }
+        .btn-retro:hover {
+            background-color: var(--bg-dark);
+            color: var(--retro-green);
+        }
+        
+        #contenedor-etiquetas {
+            background-color: white; 
+            padding: 0; 
+            box-sizing: border-box; 
+            gap: 2px;
+            margin: 0 auto;
+        }
+
+        /* FORMATO ORGBRO 57mm */
+        .formato-orgbro {
+            width: 57mm; 
+            min-height: 20mm;
+            display: grid; 
+            grid-template-columns: repeat(5, 1fr); 
+            align-content: start; 
+        }
+        .etiqueta-orgbro {
+            aspect-ratio: 1 / 1;
+            font-size: 14px;
+            padding: 2px;
+        }
+
+        /* FORMATO LIFE P15 40x12mm */
+        .formato-p15 {
+            width: 40mm; 
+            min-height: 12mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .etiqueta-p15 {
+            width: 40mm;
+            height: 12mm;
+            font-size: 12px; /* Ajustado para que quepan palabras largas en 40mm */
+            padding: 0 4px; /* Margen lateral de seguridad */
+        }
+
+        /* Estructura base del recuadro (compartida por ambas) */
+        .etiqueta {
+            border: 1px dashed #000; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            font-family: 'Bitcount Prop Single', monospace; 
+            line-height: 1; 
+            font-weight: 600; 
+            color: black; 
+            cursor: pointer; 
+            overflow: hidden; 
+            text-align: center; 
+            box-sizing: border-box; 
+            word-break: break-word; 
+        }
+        .etiqueta:hover { background-color: #fee2e2; border-color: red; }
+
+        /* Corrección de centro dinámica por impresora */
+        .correccion-centro {
+            display: block;
+            width: 100%;
+        }
+        .centro-orgbro { transform: translateY(-8px); }
+        .centro-p15 { transform: translateY(-4px); } /* Ajuste fino a -4px dado que la etiqueta de 12mm es muy bajita */
+        
+        @keyframes fadeInOut { 0% { opacity: 0; transform: translateY(-20px); } 15% { opacity: 1; transform: translateY(0); } 85% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-20px); } }
+        .toast-animado { animation: fadeInOut 2.5s ease-in-out forwards; }
+    
+        /* PWA / móvil */
+        html { -webkit-text-size-adjust: 100%; }
+        body { overscroll-behavior-y: contain; }
+        button, input { touch-action: manipulation; }
+        input, button { font-size: 16px; }
+        @media (max-width: 640px) {
+            body { padding: 12px !important; }
+            .panel-retro { padding: 14px !important; }
+            #contenedor-etiquetas { max-width: 100%; }
+            .btn-retro, button { min-height: 44px; }
+            #texto-etiqueta { width: min(100%, 190px) !important; }
+            #cantidad-etiquetas { width: 72px !important; }
+        }
+
+    </style>
+
+    <meta name="theme-color" content="#0d110f">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Terminal ORGBRO">
+    <link rel="manifest" href="manifest.json">
+
+</head>
+<body class="p-6 flex flex-col items-center min-h-screen">
+    
+    <div id="toast" class="hidden fixed top-5 panel-retro text-[var(--retro-green)] px-6 py-3 shadow-lg z-50 font-bold text-sm tracking-widest uppercase"></div>
+
+    <div class="w-full max-w-lg mb-6 flex justify-between items-end border-b border-[var(--retro-green)] pb-2">
+        <div>
+            <h1 class="text-2xl font-bold uppercase tracking-wider">Terminal ORGBRO</h1>
+            <p class="text-xs opacity-80">User: Admin | Status: Online</p>
+        </div>
+        <div id="contador" class="text-sm font-bold border border-[var(--retro-green)] px-2 py-1 bg-[var(--panel-bg)]">
+            [ 0 / 115 ]
+        </div>
+    </div>
+
+    <div class="w-full max-w-lg mb-4 flex gap-4 justify-center">
+        <button id="btn-orgbro" class="btn-retro px-4 py-1 uppercase text-xs w-1/2 border-[var(--retro-green)] bg-[var(--retro-green)] text-[var(--bg-dark)] tracking-wider">
+            ORGBRO (57mm)
+        </button>
+        <button id="btn-p15" class="px-4 py-1 uppercase text-xs font-bold border border-[var(--retro-green)] hover:bg-[var(--retro-green)] hover:text-[var(--bg-dark)] transition-colors w-1/2 text-[var(--retro-green)] bg-transparent tracking-wider">
+            LIFE P15 (40x12)
+        </button>
+    </div>
+
+    <!-- Panel de control centralizadoizado -->
+    <div class="panel-retro flex flex-wrap gap-4 mb-8 justify-center w-full max-w-lg items-center p-5 shadow-lg">
+        <input type="text" id="texto-etiqueta" placeholder="Texto" class="input-retro p-2 w-32 text-center tracking-widest">
+        
+        <div class="flex items-center gap-2">
+            <span class="text-xs uppercase">Qty:</span>
+            <input type="number" id="cantidad-etiquetas" min="1" max="115" value="1" class="input-retro p-2 w-16 text-center">
+        </div>
+        
+        <button id="btn-agregar" class="btn-retro px-6 py-2 uppercase tracking-widest flex items-center gap-2">
+            <span class="text-lg leading-none">+</span> Add
+        </button>
+    </div>
+
+    <!-- Panel Dinámico de Ajuste de Tamaño (Solo para P15) -->
+    <div id="control-tamano" class="hidden flex-col items-center gap-2 mb-4 w-full max-w-lg mx-auto panel-retro p-3 shadow-lg">
+        <div class="flex justify-between w-full text-xs uppercase tracking-widest">
+            <span>Ajuste de Tamaño (Post-Generación)</span>
+            <span id="display-tamano" class="font-bold text-[var(--retro-green)]">12px</span>
+        </div>
+        <input type="range" id="slider-tamano" min="8" max="36" value="12" class="w-full accent-[var(--retro-green)] cursor-pointer">
+    </div>
+
+    <div class="w-full max-w-md overflow-x-auto flex justify-center panel-retro p-4 mb-8 shadow-lg">
+        <div id="contenedor-etiquetas"></div>
+    </div>
+
+    <div class="flex gap-4 w-full max-w-md justify-between border-t border-[var(--retro-green)] pt-4">
+        <button id="btn-limpiar" class="px-4 py-2 uppercase text-xs font-bold border border-[var(--retro-green)] hover:bg-[var(--retro-green)] hover:text-[var(--bg-dark)] transition-colors">
+            Clear Data
+        </button>
+        <button id="btn-descargar" class="btn-retro px-6 py-2 uppercase text-sm">
+            > Export PNG
+        </button>
+    </div>
+
+    <script>
+        const contenedor = document.getElementById('contenedor-etiquetas');
+        const inputTexto = document.getElementById('texto-etiqueta');
+        const inputCantidad = document.getElementById('cantidad-etiquetas');
+        const sliderTamano = document.getElementById('slider-tamano');
+        const displayTamano = document.getElementById('display-tamano');
+        const controlTamano = document.getElementById('control-tamano');
+        const contador = document.getElementById('contador');
+        const toast = document.getElementById('toast');
+        
+        const btnOrgbro = document.getElementById('btn-orgbro');
+        const btnP15 = document.getElementById('btn-p15');
+        
+        let impresoraActual = 'orgbro'; 
+        let MAX_ETIQUETAS = 115; 
+        let etiquetasArray = []; 
+
+        function mostrarToast(mensaje) {
+            toast.textContent = mensaje;
+            toast.classList.remove('hidden');
+            toast.classList.add('toast-animado');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+                toast.classList.remove('toast-animado');
+            }, 2500);
+        }
+
+        function setImpresora(tipo) {
+            impresoraActual = tipo;
+            if(tipo === 'orgbro') {
+                MAX_ETIQUETAS = 115;
+                controlTamano.classList.add('hidden');
+                controlTamano.classList.remove('flex');
+                
+                btnOrgbro.className = "btn-retro px-4 py-1 uppercase text-xs w-1/2 border-[var(--retro-green)] bg-[var(--retro-green)] text-[var(--bg-dark)] tracking-wider";
+                btnP15.className = "px-4 py-1 uppercase text-xs font-bold border border-[var(--retro-green)] hover:bg-[var(--retro-green)] hover:text-[var(--bg-dark)] transition-colors w-1/2 text-[var(--retro-green)] bg-transparent tracking-wider";
+                contenedor.className = "formato-orgbro";
+            } else {
+                MAX_ETIQUETAS = 50; /* Un límite inferior es mejor para la P15 ya que imprime en línea recta */
+                controlTamano.classList.remove('hidden');
+                controlTamano.classList.add('flex');
+                
+                btnP15.className = "btn-retro px-4 py-1 uppercase text-xs w-1/2 border-[var(--retro-green)] bg-[var(--retro-green)] text-[var(--bg-dark)] tracking-wider";
+                btnOrgbro.className = "px-4 py-1 uppercase text-xs font-bold border border-[var(--retro-green)] hover:bg-[var(--retro-green)] hover:text-[var(--bg-dark)] transition-colors w-1/2 text-[var(--retro-green)] bg-transparent tracking-wider";
+                contenedor.className = "formato-p15";
+            }
+            
+            // Recorta los datos si cambias de impresora y superas el límite del nuevo formato
+            if(etiquetasArray.length > MAX_ETIQUETAS) {
+                etiquetasArray = etiquetasArray.slice(0, MAX_ETIQUETAS);
+                mostrarToast('SYSTEM: DATA TRUNCATED (LIMIT)');
+            }
+            
+            localStorage.setItem('impresoraSeleccionada', tipo);
+            renderizarEtiquetas();
+        }
+
+        // Listeners para los botones de la interfaz
+        btnOrgbro.addEventListener('click', () => setImpresora('orgbro'));
+        btnP15.addEventListener('click', () => setImpresora('p15'));
+
+        function renderizarEtiquetas() {
+            contenedor.innerHTML = '';
+            
+            const tamanoActivo = sliderTamano.value + 'px';
+            displayTamano.textContent = tamanoActivo;
+            
+            etiquetasArray.forEach((texto, index) => {
+                const div = document.createElement('div');
+                // Asignamos la clase específica según la impresora activa
+                div.className = `etiqueta ${impresoraActual === 'orgbro' ? 'etiqueta-orgbro' : 'etiqueta-p15'}`;
+                
+                const span = document.createElement('span');
+                // Asignamos el corrector de centro específico
+                span.className = `correccion-centro ${impresoraActual === 'orgbro' ? 'centro-orgbro' : 'centro-p15'}`;
+                span.textContent = texto;
+                
+                if (impresoraActual === 'p15') {
+                    div.style.fontSize = tamanoActivo;
+                }
+                
+                div.appendChild(span);
+                
+                div.onclick = () => {
+                    etiquetasArray.splice(index, 1);
+                    renderizarEtiquetas();
+                };
+                contenedor.appendChild(div);
+            });
+            
+            // Calculamos cuántos espacios vacíos faltan según el formato
+            let vacios = 0;
+            if (impresoraActual === 'orgbro') {
+                if (etiquetasArray.length === 0) {
+                    vacios = 5; 
+                } else if (etiquetasArray.length % 5 !== 0) {
+                    vacios = 5 - (etiquetasArray.length % 5); 
+                }
+            } else if (impresoraActual === 'p15' && etiquetasArray.length === 0) {
+                // En la P15 no necesitamos rellenar filas de 5. 
+                // Solo mostramos 1 vacía de muestra si no hay nada escrito.
+                vacios = 1; 
+            }
+            
+            for(let i = 0; i < vacios; i++) {
+                const divVacio = document.createElement('div');
+                divVacio.className = `etiqueta border-gray-300 text-transparent ${impresoraActual === 'orgbro' ? 'etiqueta-orgbro' : 'etiqueta-p15'}`;
+                divVacio.style.pointerEvents = 'none';
+                
+                const spanVacio = document.createElement('span');
+                spanVacio.className = `correccion-centro ${impresoraActual === 'orgbro' ? 'centro-orgbro' : 'centro-p15'}`;
+                spanVacio.textContent = '-';
+                
+                divVacio.appendChild(spanVacio);
+                contenedor.appendChild(divVacio);
+            }
+            
+            contador.textContent = `[ ${etiquetasArray.length} / ${MAX_ETIQUETAS} ]`;
+            inputCantidad.max = MAX_ETIQUETAS; // Evitar que el usuario pida 100 etiquetas en la P15
+            guardarEnMemoria();
+        }
+
+        document.getElementById('btn-agregar').addEventListener('click', () => {
+            const texto = inputTexto.value.trim();
+            const cantidad = parseInt(inputCantidad.value) || 1;
+            
+            if (texto === '') return;
+
+            for(let i = 0; i < cantidad; i++) {
+                if (etiquetasArray.length < MAX_ETIQUETAS) {
+                    etiquetasArray.push(texto);
+                }
+            }
+            inputTexto.value = '';
+            inputTexto.focus();
+            renderizarEtiquetas();
+            mostrarToast(`SYSTEM: ${cantidad} ADDED`);
+        });
+
+        inputTexto.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('btn-agregar').click();
+        });
+
+        document.getElementById('btn-limpiar').addEventListener('click', () => {
+            etiquetasArray = [];
+            renderizarEtiquetas();
+            mostrarToast('SYSTEM: DATA CLEARED');
+        });
+
+        sliderTamano.addEventListener('input', () => {
+            if(impresoraActual === 'p15') {
+                renderizarEtiquetas();
+                localStorage.setItem('tamanoFuenteP15', sliderTamano.value);
+            }
+        });
+
+        document.getElementById('btn-descargar').addEventListener('click', () => {
+            html2canvas(contenedor, { scale: 4, backgroundColor: "#ffffff" }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'etiquetas_57mm.png';
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+                mostrarToast('SYSTEM: PNG EXPORTED');
+            });
+        });
+
+        function guardarEnMemoria() {
+            localStorage.setItem('etiquetasTerminal', JSON.stringify(etiquetasArray));
+        }
+        
+        function cargarDeMemoria() {
+            const guardado = localStorage.getItem('etiquetasTerminal');
+            if (guardado) {
+                etiquetasArray = JSON.parse(guardado);
+            }
+            
+            const tamanoGuardado = localStorage.getItem('tamanoFuenteP15');
+            if (tamanoGuardado) {
+                sliderTamano.value = tamanoGuardado;
+            }
+            
+            const impresoraGuardada = localStorage.getItem('impresoraSeleccionada');
+            if (impresoraGuardada) {
+                setImpresora(impresoraGuardada);
+            } else {
+                setImpresora('orgbro'); // Predeterminada
+            }
+            // NOTA: No llamamos a renderizarEtiquetas() aquí porque setImpresora() ya la invoca.
+        }
+
+        cargarDeMemoria();
+    </script>
+
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("./service-worker.js")
+                    .catch(err => console.warn("Service Worker:", err));
+            });
+        }
+    </script>
+
+</body>
+</html>
