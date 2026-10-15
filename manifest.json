@@ -1,16 +1,19 @@
 {
-  "name": "Terminal de Etiquetas ORGBRO",
-  "short_name": "ORGBRO",
-  "description": "Terminal para etiquetas ORGBRO 57mm, LIFE P15 40x12mm y guías de envío.",
-  "start_url": "./",
+  "name": "Terminal de Etiquetas 57mm & P15",
+  "short_name": "Terminal Print",
+  "description": "Generador térmico de etiquetas para ORGBRO (57mm), LIFE P15 (40x12) y Guías de Envío.",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0d110f",
   "theme_color": "#0d110f",
   "orientation": "portrait-primary",
-  "lang": "es",
-  "categories": [
-    "productivity",
-    "utilities"
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='16' fill='%230d110f' stroke='%23849c82' stroke-width='6'/><text x='50' y='65' font-family='monospace' font-size='45' font-weight='bold' fill='%23849c82' text-anchor='middle'>P15</text></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
   ]
 }
