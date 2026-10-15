@@ -1,1 +1,54 @@
-const CACHE_NAME="terminal-orgbro-pwa-v3"; const APP_SHELL=["./","./index.html","./manifest.json","./service-worker.js"]; self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(APP_SHELL)).then(()=>self.skipWaiting()))); self.addEventListener("activate",e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))); self.addEventListener("fetch",e=>{if(e.request.method!=="GET")return; const u=new URL(e.request.url); if(u.origin===self.location.origin)e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request).then(r=>{if(r&&r.status===200){const x=r.clone(); caches.open(CACHE_NAME).then(ca=>ca.put(e.request,x));}return r;}).catch(()=>caches.match("./index.html"))));});
+const CACHE_NAME = 'terminal-etiquetas-v2';
+const ASSETS_TO_CACHE = [
+  './',
+  './index.html',
+  './manifest.json'
+];
+
+// 1. Instalación: Guarda los archivos base con rutas relativas
+self.addEventListener('install', (event) => {
+  self.skipWaiting(); // Fuerza al nuevo Service Worker a tomar el control de inmediato
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS_TO_CACHE);
+    })
+  );
+});
+
+// 2. Activación: Limpia cachés antiguos que hayan bloqueado tu pantalla
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            return caches.delete(cache);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+// 3. Interceptación de peticiones: Estrategia Network-First (Red primero, Caché como respaldo)
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+
+  event.respondWith(
+    fetch(event.request)
+      .then((networkResponse) => {
+        // Si la red responde bien, actualizamos el caché en segundo plano
+        if (networkResponse && networkResponse.status === 200 && event.request.url.startsWith(self.location.origin)) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        // Si no hay conexión a internet, servimos desde el caché local
+        return caches.match(event.request);
+      })
+  );
+});
